@@ -71,7 +71,7 @@ class Classifier:
         elif 0 > sum(features) <= 15:
             return 0
 
-        print("[SUCCEES] Violation threshold not reached")
+        print("[SUCCESS] Violation threshold not reached")
         return 2
 
 
