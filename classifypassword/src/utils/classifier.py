@@ -5,60 +5,80 @@ import itertools
 class Classifier:
 
     @classmethod
-    def seq_char(cls, password):
+    def is_sequential(cls, pwd):
+        seq = string.ascii_letters + string.digits
+        positions = [seq.index(e) for e in pwd]
 
-        sequences = list()
-
-        chars = string.ascii_lowercase
-        digits = string.digits
-
-        for i, c in enumerate(password):
-            if c.lower() in chars:
-                acc = 0
-                pos_in_chars = chars.index(c.lower())
-                for d in password[i:]:
-
-
-            elif c in digits:
-                pos_in_digits = digits.index(c)
-
-            else:
-                pass
+        for p in positions:
+            pass
 
     @classmethod
-    def svm_classify(cls, password):
+    def is_consecutive(cls, pwd):
+        consecs = [(char, len(list(group))) for char, group in itertools.groupby(pwd)]
+        return max(each[1] for each in consecs)
 
-        weights = list()
-        weights.append(len(password) * 4) # password length
-        weights.append((len(password) - sum(1 for c in password if c.islower())) * 2) # lower case characters
-        weights.append((len(password) - sum(1 for c in password if c.isupper())) * 2) # upper case characters
+    @classmethod
+    def classify(cls, pwd):
+        upper_case = set(list(string.ascii_uppercase))
+        lower_case = set(list(string.ascii_lowercase))
+        digits = set(list(string.digits))
+        symbols = set(list(string.punctuation))
 
-        digits = sum(1 for c in password if c.isdigit()) * 4
-        weights.append(digits) # digits
+        set_pwd = set(list(pwd))
+        features = list()
+        penalties = list()
 
-        weights.append(sum(1 for c in password if c in string.punctuation) * 6) # symbols
-        weights.append(sum(1 for i, c in enumerate(password) if c.isdigit() or c in string.punctuation
-                             and i != -1 and i != 0)) # digits & symbols in the middle
+        if len(pwd) < 8:
+            features.append(len(pwd) - 8)
+            print("[FATAL] Password shorter than 8 characters")
+            return 0
 
-
-
-        if digits == 0 and symbols == 0: # characters only
-            char_only = len(password) * -1
+        if set_pwd.intersection(upper_case):
+            features.append(len(pwd) - len(set_pwd.intersection(upper_case)))
         else:
-            char_only = 0
+            penalties.append("[WARNING] Missing upper case characters")
 
-        if lower_case == 0 and upper_case == 0 and symbols == 0: # digits only
-            digits_only = len(password) * -1
+        if set_pwd.intersection(lower_case):
+            features.append(len(pwd) - len(set_pwd.intersection(lower_case)))
         else:
-            digits_only = 0
+            penalties.append("[WARNING] Missing lower case characters")
 
-        tmp_repeat = len(set(list(password))) # repeated characters
-        if tmp_repeat > len(password):
-            repeated_char = -tmp_repeat * (tmp_repeat - 1)
+        if set_pwd.intersection(digits):
+            features.append(len(pwd) - len(set_pwd.intersection(digits)))
         else:
-            repeated_char = 0
+            penalties.append("[WARNING] Missing digits")
 
-        group = itertools.groupby(password) # consecutive characters
-        consec_chars = sum([-n * 2 for n in [len(label * sum(1 for _ in g)) for label, g in group]])
+        if set_pwd.intersection(symbols):
+            features.append(len(pwd) - len(set_pwd.intersection(symbols)))
+        else:
+            penalties.append("[WARNING] Missing special characters")
+
+        if cls.is_consecutive(pwd=pwd) >= 5:
+            penalties.append("[WARNING] 5 or more consecutive characters were found")
+
+        if cls.is_sequential(pwd=pwd):
+            penalties.append("[WARNING] Sequential characters were found")
+
+        [print(p) for p in penalties]
+
+        if len(penalties) >= 2:
+            print("[FATAL] 2 or more restrictions violated, password automatically acknowledged as WEAK")
+            return 0
+
+        elif len(pwd) - 2 <= sum(features) <= len(pwd) + 2:
+            return 1
+
+        elif 0 > sum(features) <= 15:
+            return 0
+
+        print("[SUCCEES] Violation threshold not reached")
+        return 2
 
 
+if __name__ == "__main__":
+    while True:
+        try:
+            print(Classifier.is_sequential(input('Password: ')))
+
+        except KeyboardInterrupt:
+            exit(0)
