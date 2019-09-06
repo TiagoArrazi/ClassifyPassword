@@ -4,18 +4,51 @@ import itertools
 
 class Classifier:
 
+    """
+    RULES:
+        - At least 8 characters
+        - At least 1 lower case character
+        - At least 1 upper case character
+        - At least 1 number
+        - At least 1 special character
+        - No more than 2 consecutive characters
+        - No sequential characters
+
+    FROM 1 TO NONE VIOLATIONS WILL RESULT IN A STRONG PASSWORD (2)
+    2 VIOLATIONS WILL RESULT IN A GOOD PASSWORD (1)
+    3 OR MORE VIOLATIONS WILL AUTOMATICALLY RESULT IN A WEAK PASSWORD (0)
+
+    """
+
     @classmethod
     def is_sequential(cls, pwd):
-        seq = string.ascii_letters + string.digits
+        seq = "{}{}{}".format(string.ascii_letters, string.digits, string.punctuation)
         positions = [seq.index(e) for e in pwd]
+        acc = list()
+        list_acc = list()
 
-        for p in positions:
-            pass
+        for i, p in enumerate(positions):
+            try:
+                if p == positions[i + 1] - 1:
+                    acc.append(p)
+                else:
+                    list_acc.append(acc)
+                    acc.clear()
+
+            except IndexError:
+                list_acc.append(acc)
+                print(list_acc)
+                for seq in list_acc:
+                    if seq:
+                        return True
+                return False
 
     @classmethod
     def is_consecutive(cls, pwd):
         consecs = [(char, len(list(group))) for char, group in itertools.groupby(pwd)]
-        return max(each[1] for each in consecs)
+        if max(each[1] for each in consecs) >= 3:
+            return True
+        return False
 
     @classmethod
     def classify(cls, pwd):
@@ -33,52 +66,34 @@ class Classifier:
             print("[FATAL] Password shorter than 8 characters")
             return 0
 
-        if set_pwd.intersection(upper_case):
-            features.append(len(pwd) - len(set_pwd.intersection(upper_case)))
-        else:
+        if not set_pwd.intersection(upper_case):
             penalties.append("[WARNING] Missing upper case characters")
 
-        if set_pwd.intersection(lower_case):
-            features.append(len(pwd) - len(set_pwd.intersection(lower_case)))
-        else:
+        if not set_pwd.intersection(lower_case):
             penalties.append("[WARNING] Missing lower case characters")
 
-        if set_pwd.intersection(digits):
-            features.append(len(pwd) - len(set_pwd.intersection(digits)))
-        else:
+        if not set_pwd.intersection(digits):
             penalties.append("[WARNING] Missing digits")
 
-        if set_pwd.intersection(symbols):
-            features.append(len(pwd) - len(set_pwd.intersection(symbols)))
-        else:
+        if not set_pwd.intersection(symbols):
             penalties.append("[WARNING] Missing special characters")
 
-        if cls.is_consecutive(pwd=pwd) >= 5:
-            penalties.append("[WARNING] 5 or more consecutive characters were found")
+        if cls.is_consecutive(pwd=pwd):
+            penalties.append("[WARNING] 3 or more consecutive characters were found")
 
         if cls.is_sequential(pwd=pwd):
             penalties.append("[WARNING] Sequential characters were found")
 
         [print(p) for p in penalties]
 
-        if len(penalties) >= 2:
-            print("[FATAL] 2 or more restrictions violated, password automatically acknowledged as WEAK")
-            return 0
+        if len(penalties) < 2:
+            print("[SUCCESS] Minimal to none rule violation, password acknowledged as STRONG")
+            return 2
 
-        elif len(pwd) - 2 <= sum(features) <= len(pwd) + 2:
+        elif 2 <= len(penalties) < 3:
+            print("[SUCCESS] Moderate rule violation, password acknowledged as GOOD")
             return 1
 
-        elif 0 > sum(features) <= 15:
+        elif len(penalties) >= 3:
+            print("[FAIL] Too many rules were violated, password acknowledged as WEAK")
             return 0
-
-        print("[SUCCESS] Violation threshold not reached")
-        return 2
-
-
-if __name__ == "__main__":
-    while True:
-        try:
-            print(Classifier.is_sequential(input('Password: ')))
-
-        except KeyboardInterrupt:
-            exit(0)
