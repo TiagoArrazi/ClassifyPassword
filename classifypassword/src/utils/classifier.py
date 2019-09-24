@@ -24,20 +24,19 @@ class Classifier:
     def is_sequential(cls, pwd):
         seq = "{}{}{}".format(string.ascii_letters, string.digits, string.punctuation)
         positions = [seq.index(e) for e in pwd]
-        acc = list()
+        acc = 0
         list_acc = list()
 
         for i, p in enumerate(positions):
             try:
                 if p == positions[i + 1] - 1:
-                    acc.append(p)
+                    acc += 1
                 else:
                     list_acc.append(acc)
-                    acc.clear()
+                    acc = 0
 
             except IndexError:
                 list_acc.append(acc)
-                print(list_acc)
                 for seq in list_acc:
                     if seq:
                         return True
@@ -97,3 +96,4 @@ class Classifier:
         elif len(penalties) >= 3:
             print("[FAIL] Too many rules were violated, password acknowledged as WEAK")
             return 0
+
